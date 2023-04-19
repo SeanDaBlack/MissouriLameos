@@ -16,8 +16,7 @@ from selenium.webdriver.remote.remote_connection import LOGGER
 from transformers import pipeline
 
 
-
-model = pipeline("text-generation", model = "gpt2")
+model = pipeline("text-generation", model="gpt2")
 
 CLOUD_DESCRIPTION = 'Puts script in a \'cloud\' mode where the Chrome GUI is invisible'
 CLOUD_DISABLED = False
@@ -63,6 +62,7 @@ cities_zips = {
 rand_city = random.choice(list(cities_zips.keys()))
 rand_zip = random.choice(cities_zips[rand_city])
 
+
 def start_driver(url):
 
     if (args.cloud == CLOUD_ENABLED):
@@ -98,16 +98,17 @@ def start_driver(url):
 
 
 def gen_fake_number():
-    return "".join(["{}-".format(random.randint(100,999)), "{}-".format(random.randint(100,999)), "{}".format(random.randint(100,999))])
+    return "".join(["{}-".format(random.randint(100, 999)), "{}-".format(random.randint(100, 999)), "{}".format(random.randint(100, 999))])
+
 
 def createFakeIdentity():
     fake_identity = {
-    "first_name": fake.first_name(),
-    "last_name": fake.last_name(),
-    "email": fake.email(),
-    "address": fake.street_address(),
-    "phone_number": gen_fake_number()
-  }
+        "first_name": fake.first_name(),
+        "last_name": fake.last_name(),
+        "email": fake.email(),
+        "address": fake.street_address(),
+        "phone_number": gen_fake_number()
+    }
 
     return fake_identity
 
@@ -144,17 +145,12 @@ def test_success(driver):
         return True
 
 
-
 def fill_out_form(fake_identity, driver, gen_text):
 
     # Select Education Level
 
-
-
-
-    data_fields = ['Textbox-1','Textbox-2','Textbox-3','Textbox-4','Textbox-5','Textbox-6','Textbox-7', 'Textarea-1']
-
-
+    data_fields = ['Textbox-1', 'Textbox-2', 'Textbox-3', 'Textbox-4',
+                   'Textbox-5', 'Textbox-6', 'Textbox-7', 'Textarea-1']
 
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.ID, "Dropdown-1"))
@@ -163,21 +159,21 @@ def fill_out_form(fake_identity, driver, gen_text):
     for data in data_fields:
         key_to_send = ''
 
-        if data is 'Textbox-1':
+        if data == 'Textbox-1':
             key_to_send = fake_identity['first_name']
-        elif data is 'Textbox-2':
+        elif data == 'Textbox-2':
             key_to_send = fake_identity['last_name']
-        elif data is 'Textbox-3':
+        elif data == 'Textbox-3':
             key_to_send = fake_identity['address']
-        elif data is 'Textbox-4':
+        elif data == 'Textbox-4':
             key_to_send = rand_city
-        elif data is 'Textbox-5':
+        elif data == 'Textbox-5':
             key_to_send = rand_zip
-        elif data is 'Textbox-6':
+        elif data == 'Textbox-6':
             key_to_send = fake_identity['email']
-        elif data is 'Textbox-7':
+        elif data == 'Textbox-7':
             key_to_send = fake_identity['phone_number']
-        elif data is 'Textarea-1':
+        elif data == 'Textarea-1':
             key_to_send = gen_text
 
         # I wanted to be cool with the match/case statement but its not supported in colab :(((
@@ -203,12 +199,10 @@ def fill_out_form(fake_identity, driver, gen_text):
         driver.find_element(
             By.ID, data).send_keys(key_to_send)
 
-
     state = Select(driver.find_element(
-            By.ID, 'Dropdown-1'))
-    
-    state.select_by_value("MO")
+        By.ID, 'Dropdown-1'))
 
+    state.select_by_value("MO")
 
     time.sleep(1)
     driver.find_element(
@@ -218,36 +212,27 @@ def fill_out_form(fake_identity, driver, gen_text):
     return test_success(driver)
 
 
-
 if __name__ == "__main__":
 
     total_forms = 0
 
     print("Generating Text")
 
-
-
     while True:
 
+        sentence = model("There is a Transgender Center in {}, {} doing ".format(rand_city, rand_zip),
+                         do_sample=True, top_k=50,
+                         temperature=0.9, max_length=100,
+                         num_return_sentences=2)
 
-
-        sentence = model("There is a Transgender Center in {}, {} doing ".format(rand_city, rand_zip), 
-                        do_sample=True, top_k=50, 
-                        temperature=0.9, max_length=100, 
-                        num_return_sentences=2)
-
-        
         gen_text = ''
 
         print("Generated Text: :", sentence[0]['generated_text'])
         gen_text = str(sentence[0]["generated_text"])
 
-
-
         print('starting new form')
         driver = start_driver(
             url)
-
 
         fake_identity = createFakeIdentity()
         time.sleep(1)
@@ -260,7 +245,8 @@ if __name__ == "__main__":
             time.sleep(1)
             # updateFormNumber(fake_identity)
         else:
-            print("Failed to send, Your IP may have already been registered as filling out the form. No fix at present :(")
+            print(
+                "Failed to send, Your IP may have already been registered as filling out the form. No fix at present :(")
 
         driver.close()
         time.sleep(1)
