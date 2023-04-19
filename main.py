@@ -1,5 +1,4 @@
 import argparse
-import csv
 import random
 import time
 import requests
@@ -11,9 +10,6 @@ from selenium import webdriver
 from selenium import *
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import Select, WebDriverWait
 import logging
 from selenium.webdriver.remote.remote_connection import LOGGER
@@ -166,23 +162,43 @@ def fill_out_form(fake_identity, driver, gen_text):
 
     for data in data_fields:
         key_to_send = ''
-        match data:
-            case 'Textbox-1':
-                key_to_send = fake_identity['first_name']
-            case 'Textbox-2':
-                key_to_send = fake_identity['last_name']
-            case 'Textbox-3':
-                key_to_send = fake_identity['address']
-            case 'Textbox-4':
-                key_to_send = rand_city
-            case 'Textbox-5':
-                key_to_send = rand_zip
-            case 'Textbox-6':
-                key_to_send = fake_identity['email']
-            case 'Textbox-7':
-                key_to_send = fake_identity['phone_number']
-            case 'Textarea-1':
-                key_to_send = gen_text
+
+        if data is 'Textbox-1':
+            key_to_send = fake_identity['first_name']
+        elif data is 'Textbox-2':
+            key_to_send = fake_identity['last_name']
+        elif data is 'Textbox-3':
+            key_to_send = fake_identity['address']
+        elif data is 'Textbox-4':
+            key_to_send = rand_city
+        elif data is 'Textbox-5':
+            key_to_send = rand_zip
+        elif data is 'Textbox-6':
+            key_to_send = fake_identity['email']
+        elif data is 'Textbox-7':
+            key_to_send = fake_identity['phone_number']
+        elif data is 'Textarea-1':
+            key_to_send = gen_text
+
+        # I wanted to be cool with the match/case statement but its not supported in colab :(((
+
+        # match data:
+        #     case 'Textbox-1':
+        #         key_to_send = fake_identity['first_name']
+        #     case 'Textbox-2':
+        #         key_to_send = fake_identity['last_name']
+        #     case 'Textbox-3':
+        #         key_to_send = fake_identity['address']
+        #     case 'Textbox-4':
+        #         key_to_send = rand_city
+        #     case 'Textbox-5':
+        #         key_to_send = rand_zip
+        #     case 'Textbox-6':
+        #         key_to_send = fake_identity['email']
+        #     case 'Textbox-7':
+        #         key_to_send = fake_identity['phone_number']
+        #     case 'Textarea-1':
+        #         key_to_send = gen_text
 
         driver.find_element(
             By.ID, data).send_keys(key_to_send)
