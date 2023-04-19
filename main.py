@@ -14,9 +14,11 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 import logging
 from selenium.webdriver.remote.remote_connection import LOGGER
 from transformers import pipeline
+from proxy import get_proxies
 
 
 model = pipeline("text-generation", model="gpt2")
+
 
 CLOUD_DESCRIPTION = 'Puts script in a \'cloud\' mode where the Chrome GUI is invisible'
 CLOUD_DISABLED = False
@@ -63,7 +65,7 @@ rand_city = random.choice(list(cities_zips.keys()))
 rand_zip = random.choice(cities_zips[rand_city])
 
 
-def start_driver(url):
+def start_driver(url, proxy):
 
     if (args.cloud == CLOUD_ENABLED):
         LOGGER.setLevel(logging.WARNING)
@@ -79,6 +81,7 @@ def start_driver(url):
 
     else:
         options = webdriver.ChromeOptions()
+        options.add_argument(f'--proxy-server={proxy}')
         options.add_argument(
             "--disable-blink-features=AutomationControlled")
         options.add_argument('--disable-dev-shm-usage')
@@ -92,7 +95,14 @@ def start_driver(url):
         driver = webdriver.Chrome(
             ChromeDriverManager().install(), options=options)
 
-    driver.get(url)
+    try:
+        driver.get(url)
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "Dropdown-1"))
+        )
+    except:
+        print("proxy failed. normal cause i'm a cheap boy")
+        return
 
     return driver
 
@@ -113,28 +123,6 @@ def createFakeIdentity():
     return fake_identity
 
 
-# def random_email(name=None):
-#     if name is None:
-#         name = fake.name()
-
-#     mailGens = [lambda fn, ln, *names: fn + ln,
-#                 lambda fn, ln, *names: fn + "_" + ln,
-#                 lambda fn, ln, *names: fn[0] + "_" + ln,
-#                 lambda fn, ln, *names: fn + ln +
-#                 str(int(1 / random.random() ** 3)),
-#                 lambda fn, ln, *names: fn + "_" + ln +
-#                 str(int(1 / random.random() ** 3)),
-#                 lambda fn, ln, *names: fn[0] + "_" + ln + str(int(1 / random.random() ** 3)), ]
-
-#     return random.choices(mailGens, MAIL_GENERATION_WEIGHTS)[0](*name.split(" ")).lower() + "@" + requests.get(
-#         'https://api.mail.tm/domains').json().get('hydra:member')[0].get('domain')
-
-
-# def updateFormNumber(fake_identity):
-#     # send post request to the server with the data to track the number of reviews
-#     requests.post('http://datatracking-gz4c.com/studentloans')
-
-
 def test_success(driver):
     try:
         WebDriverWait(driver, 10).until(
@@ -152,9 +140,13 @@ def fill_out_form(fake_identity, driver, gen_text):
     data_fields = ['Textbox-1', 'Textbox-2', 'Textbox-3', 'Textbox-4',
                    'Textbox-5', 'Textbox-6', 'Textbox-7', 'Textarea-1']
 
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "Dropdown-1"))
-    )
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "Dropdown-1"))
+        )
+    except:
+        print("proxy failed. normal cause i'm a cheap boy")
+        return False
 
     for data in data_fields:
         key_to_send = ''
@@ -175,26 +167,6 @@ def fill_out_form(fake_identity, driver, gen_text):
             key_to_send = fake_identity['phone_number']
         elif data == 'Textarea-1':
             key_to_send = gen_text
-
-        # I wanted to be cool with the match/case statement but its not supported in colab :(((
-
-        # match data:
-        #     case 'Textbox-1':
-        #         key_to_send = fake_identity['first_name']
-        #     case 'Textbox-2':
-        #         key_to_send = fake_identity['last_name']
-        #     case 'Textbox-3':
-        #         key_to_send = fake_identity['address']
-        #     case 'Textbox-4':
-        #         key_to_send = rand_city
-        #     case 'Textbox-5':
-        #         key_to_send = rand_zip
-        #     case 'Textbox-6':
-        #         key_to_send = fake_identity['email']
-        #     case 'Textbox-7':
-        #         key_to_send = fake_identity['phone_number']
-        #     case 'Textarea-1':
-        #         key_to_send = gen_text
 
         driver.find_element(
             By.ID, data).send_keys(key_to_send)
@@ -218,7 +190,9 @@ if __name__ == "__main__":
 
     print("Generating Text")
 
-    while True:
+    proxies = get_proxies()
+
+    for proxy in proxies:
 
         sentence = model("There is a Transgender Center in {}, {} doing ".format(rand_city, rand_zip),
                          do_sample=True, top_k=50,
@@ -232,11 +206,12 @@ if __name__ == "__main__":
 
         print('starting new form')
         driver = start_driver(
-            url)
+            url, proxy)
 
         fake_identity = createFakeIdentity()
         time.sleep(1)
 
+        print('filling out form now')
         if fill_out_form(fake_identity, driver, gen_text):
             print('Thank you: {} {} for filling out this form'.format(
                 fake_identity['first_name'], fake_identity['last_name']))
@@ -247,6 +222,8 @@ if __name__ == "__main__":
         else:
             print(
                 "Failed to send, Your IP may have already been registered as filling out the form. No fix at present :(")
-
-        driver.close()
+        try:
+            driver.close()
+        except:
+            pass
         time.sleep(1)
