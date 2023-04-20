@@ -1,10 +1,13 @@
 import argparse
 import random
 import time
+import base64
 import requests
 from faker import Faker
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium import webdriver
+import speech_recognition as sr
+from pydub import AudioSegment
 # from bs4 import BeautifulSoup
 # from emails import MAIL_GENERATION_WEIGHTS
 from selenium import *
@@ -17,7 +20,7 @@ from transformers import pipeline
 from proxy import get_proxies
 
 
-model = pipeline("text-generation", model="gpt2")
+# model = pipeline("text-generation", model="gpt2")
 
 
 CLOUD_DESCRIPTION = 'Puts script in a \'cloud\' mode where the Chrome GUI is invisible'
@@ -81,7 +84,8 @@ def start_driver(url, proxy):
 
     else:
         options = webdriver.ChromeOptions()
-        options.add_argument(f'--proxy-server={proxy}')
+        if proxy != "":
+            options.add_argument(f'--proxy-server={proxy}')
         options.add_argument(
             "--disable-blink-features=AutomationControlled")
         options.add_argument('--disable-dev-shm-usage')
@@ -131,6 +135,97 @@ def test_success(driver):
         return False
     except:
         return True
+
+
+r = sr.Recognizer()
+
+
+def most_frequent(List):
+    try:
+        return max(set(List), key=List.count)
+    except:
+        return '0'
+
+
+def audio_to_text(file):
+
+    with sr.AudioFile(file) as source:
+        # r.adjust_for_ambient_noise(source, .25)
+        r.energy_threshold = 150
+        # r.adjust_for_ambient_noise()
+        audio_text = r.listen(source)
+        try:
+            text = r.recognize_google(audio_text)
+            print(f'Converting audio transcripts into text ...')
+            return(text)
+        except Exception as e:
+            print(e)
+            print(f'Sorry.. run again...')
+
+
+def test_fill_out_form(fake_identity, driver, gen_text):
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "/html/body/main/div[2]/div[1]/div/div/form/div[11]/div[1]/audio"))
+    )
+
+    audio_src = driver.find_element(By.XPATH,
+                                    '/html/body/main/div[2]/div[1]/div/div/form/div[11]/div[1]/audio').get_attribute('src')
+    # content = requests.get(audio_src).content
+
+    print('saving...')
+    final = []
+
+    file_decode = base64.b64decode(
+        audio_src.split("data:audio/wav;base64,")[1])
+    file_result = open('file.wav', 'wb')
+    file_result.write(file_decode)
+
+    # # create 1 sec of silence audio segment
+    # one_sec_segment = AudioSegment.from_wav('file.wav')
+
+    # # read wav file to an audio segment
+    # song = AudioSegment.from_wav('file.wav')
+
+    # # Add above two audio segments
+    # final_song = one_sec_segment + song
+
+    # # Either save modified audio
+    # final_song.export('newfile.wav', format="wav")
+
+    # Hotel 27 Zulu Echo
+    answer = audio_to_text('file.wav')
+    print(answer)
+
+    # for a in answer['alternative']:
+    #     newstring = ''
+    #     for i in a['transcript'].split(' '):
+    #         if i.isalpha():
+    #             newstring += i[0][0].upper()
+    #         elif i.isnumeric() or i.isalnum():
+    #             for x in i.split():  # [2, 7]
+    #                 if x.isnumeric():
+    #                     newstring += x
+
+    #     final.append(newstring)
+
+    # print(final)
+    final = []
+    a = answer.split(' ')  # [Hotel, 27, Zulu, Echo]
+    newstring = ''
+    for i in a:
+        if i.isalpha():
+            newstring += i[0][0]
+        elif i.isnumeric():
+            for x in i.split():  # [2, 7]
+                print(x)
+                newstring += x
+
+        #   final.append(newstring)
+
+    print(final)
+
+    time.sleep(10000)
 
 
 def fill_out_form(fake_identity, driver, gen_text):
@@ -184,25 +279,32 @@ def fill_out_form(fake_identity, driver, gen_text):
     return test_success(driver)
 
 
+def gen_text():
+    gen_text = ''
+
+    model = pipeline("text-generation", model="gpt2")
+
+    sentence = model("There is a Transgender Center in {}, {} doing ".format(rand_city, rand_zip),
+                     do_sample=True, top_k=50,
+                     temperature=0.9, max_length=100,
+                     num_return_sentences=2)
+
+    print("Generated Text: :", sentence[0]['generated_text'])
+    gen_text = str(sentence[0]["generated_text"])
+    return gen_text
+
+
 if __name__ == "__main__":
 
     total_forms = 0
 
     print("Generating Text")
+    proxy = ''
+    # proxies = get_proxies()
 
-    proxies = get_proxies()
+    proxies = ['1', 2, 3, 4, 5]
 
     for proxy in proxies:
-
-        sentence = model("There is a Transgender Center in {}, {} doing ".format(rand_city, rand_zip),
-                         do_sample=True, top_k=50,
-                         temperature=0.9, max_length=100,
-                         num_return_sentences=2)
-
-        gen_text = ''
-
-        print("Generated Text: :", sentence[0]['generated_text'])
-        gen_text = str(sentence[0]["generated_text"])
 
         print('starting new form')
         driver = start_driver(
@@ -212,7 +314,8 @@ if __name__ == "__main__":
         time.sleep(1)
 
         print('filling out form now')
-        if fill_out_form(fake_identity, driver, gen_text):
+        if test_fill_out_form(fake_identity, driver, gen_text):
+            time.sleep(10000)
             print('Thank you: {} {} for filling out this form'.format(
                 fake_identity['first_name'], fake_identity['last_name']))
             total_forms += 1
