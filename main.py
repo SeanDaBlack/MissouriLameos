@@ -18,10 +18,11 @@ import logging
 from selenium.webdriver.remote.remote_connection import LOGGER
 from transformers import pipeline
 from proxy import get_proxies
-
+import cv2 as cv
+import pytesseract as tesseract
 
 # model = pipeline("text-generation", model="gpt2")
-
+tesseract.pytesseract.tesseract_cmd = r'C:\Users\USER\AppData\Local\Tesseract-OCR\tesseract.exe'
 
 CLOUD_DESCRIPTION = 'Puts script in a \'cloud\' mode where the Chrome GUI is invisible'
 CLOUD_DISABLED = False
@@ -84,8 +85,8 @@ def start_driver(url, proxy):
 
     else:
         options = webdriver.ChromeOptions()
-        if proxy != "":
-            options.add_argument(f'--proxy-server={proxy}')
+        # if proxy != "":
+        #     options.add_argument(f'--proxy-server={proxy}')
         options.add_argument(
             "--disable-blink-features=AutomationControlled")
         options.add_argument('--disable-dev-shm-usage')
@@ -140,22 +141,26 @@ def test_success(driver):
 r = sr.Recognizer()
 
 
-def most_frequent(List):
-    try:
-        return max(set(List), key=List.count)
-    except:
-        return '0'
+# def most_frequent(List):
+#     try:
+#         return max(set(List), key=List.count)
+#     except:
+#         return '0'
+
+
+# def at_lest_5(string):
+#     return len(string) == 5
 
 
 def audio_to_text(file):
 
     with sr.AudioFile(file) as source:
-        # r.adjust_for_ambient_noise(source, .25)
-        r.energy_threshold = 150
+        r.adjust_for_ambient_noise(source)
+        # r.energy_threshold = 150
         # r.adjust_for_ambient_noise()
-        audio_text = r.listen(source)
+        audio_text = r.record(source, offset=6)
         try:
-            text = r.recognize_google(audio_text)
+            text = r.recognize_google(audio_text, show_all=True)
             print(f'Converting audio transcripts into text ...')
             return(text)
         except Exception as e:
@@ -163,67 +168,111 @@ def audio_to_text(file):
             print(f'Sorry.. run again...')
 
 
+def img_fill_test(fake_identity, driver, gen_text):
+
+    # img_src = driver.find_element(By.XPATH,
+    #                               '/html/body/main/div[2]/div[1]/div/div/form/div[11]/div[1]/img').get_attribute('src')
+
+    # # print(img_src)
+    # file_decode = base64.b64decode(
+    #     img_src.split("data:image/png;base64,")[1])
+    # file_result = open('file.png', 'wb')
+    # file_result.write(file_decode)
+
+    gray = cv.imread('file.png', 0)
+    # cv.threshold(gray, gray, 231, 255, cv.THRESH_BINARY)
+    # api = tesseract.TessBaseAPI()
+    # api.Init(".", "eng", tesseract.OEM_DEFAULT)
+    # api.SetVariable("tessedit_char_whitelist",
+    #                 "0123456789abcdefghijklmnopqrstuvwxyz")
+    # api.SetPageSegMode(tesseract.PSM_SINGLE_WORD)
+    # tesseract.SetCvImage(gray, api)
+    # print(api.GetUTF8Text())
+    print(tesseract.image_to_string(gray))
+
+
 def test_fill_out_form(fake_identity, driver, gen_text):
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "/html/body/main/div[2]/div[1]/div/div/form/div[11]/div[1]/audio"))
-    )
 
-    audio_src = driver.find_element(By.XPATH,
-                                    '/html/body/main/div[2]/div[1]/div/div/form/div[11]/div[1]/audio').get_attribute('src')
-    # content = requests.get(audio_src).content
+    done = False
 
-    print('saving...')
-    final = []
+    while not done:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "/html/body/main/div[2]/div[1]/div/div/form/div[11]/div[1]/audio"))
+        )
 
-    file_decode = base64.b64decode(
-        audio_src.split("data:audio/wav;base64,")[1])
-    file_result = open('file.wav', 'wb')
-    file_result.write(file_decode)
+        audio_src = driver.find_element(By.XPATH,
+                                        '/html/body/main/div[2]/div[1]/div/div/form/div[11]/div[1]/audio').get_attribute('src')
+        # content = requests.get(audio_src).content
 
-    # # create 1 sec of silence audio segment
-    # one_sec_segment = AudioSegment.from_wav('file.wav')
+        print('saving...')
+        final = []
 
-    # # read wav file to an audio segment
-    # song = AudioSegment.from_wav('file.wav')
+        file_decode = base64.b64decode(
+            audio_src.split("data:audio/wav;base64,")[1])
+        file_result = open('file.wav', 'wb')
+        file_result.write(file_decode)
 
-    # # Add above two audio segments
-    # final_song = one_sec_segment + song
+        song = AudioSegment.from_wav("file.wav")
 
-    # # Either save modified audio
-    # final_song.export('newfile.wav', format="wav")
+        # but let's make him *very* quiet
+        song = song + 15 + song
 
-    # Hotel 27 Zulu Echo
-    answer = audio_to_text('file.wav')
-    print(answer)
+        # save the output
+        song.export("loud.wav", "wav")
 
-    # for a in answer['alternative']:
-    #     newstring = ''
-    #     for i in a['transcript'].split(' '):
-    #         if i.isalpha():
-    #             newstring += i[0][0].upper()
-    #         elif i.isnumeric() or i.isalnum():
-    #             for x in i.split():  # [2, 7]
-    #                 if x.isnumeric():
-    #                     newstring += x
+        answer = audio_to_text('loud.wav')
+        # print(answer)
+        final = []
+        for a in answer['alternative']:
+            newstring = ''
+            AAAA = a['transcript'].lower()
 
-    #     final.append(newstring)
+            AAAA = AAAA.replace('pop up', 'papa')
+            AAAA = AAAA.replace('pop-up', 'papa')
+            AAAA = AAAA.replace('climate', 'lima')
+            AAAA = AAAA.replace('for', '4')
+            AAAA = AAAA.replace('four', '4')
+            AAAA = AAAA.replace('x-ray', 'xray')
+            AAAA = AAAA.replace('x ray', 'xray')
 
-    # print(final)
-    final = []
-    a = answer.split(' ')  # [Hotel, 27, Zulu, Echo]
-    newstring = ''
-    for i in a:
-        if i.isalpha():
-            newstring += i[0][0]
-        elif i.isnumeric():
-            for x in i.split():  # [2, 7]
-                print(x)
-                newstring += x
+            # print(AAAA)
+
+            for i in AAAA.split(' '):
+                if i.isalpha():
+                    newstring += i[0][0].upper()
+                elif i.isnumeric() or i.isalnum():
+                    for x in i.split():  # [2, 7]
+                        if x.isnumeric():
+                            newstring += x
+
+            last_key = list(newstring)
+            # y = last_key.pop(0)
+            # last_key.append(y)
+
+            final.append("".join(last_key))
+
+        # final.append(last_key)
+        # print(final)
+        # final = []
+        # a = answer.split(' ')  # [Hotel, 27, Zulu, Echo]
+        # newstring = ''
+        # for i in a:
+        #     if i.isalpha():
+        #         newstring += i[0][0]
+        #     elif i.isnumeric():
+        #         for x in i.split():  # [2, 7]
+        #             print(x)
+        #             newstring += x
 
         #   final.append(newstring)
+        if at_lest_5(most_frequent(final)):
 
-    print(final)
+            print(most_frequent(final))
+            done = True
+        else:
+            print(most_frequent(final))
+            print('not done')
 
     time.sleep(10000)
 
@@ -294,11 +343,23 @@ def gen_text():
     return gen_text
 
 
+def get_cap_data(driver):
+
+    return {driver.find_element(
+        By.XPATH, "//*[contains(@name,'captcha-ca')]").get_attribute('value'),
+        driver.find_element(
+        By.XPATH, "//*[contains(@name,'captcha-iv')]").get_attribute('value'),
+        driver.find_element(
+        By.XPATH, "//*[contains(@name,'captcha-k')]").get_attribute('value')}
+
+
 if __name__ == "__main__":
 
     total_forms = 0
 
     print("Generating Text")
+    # gen_text = gen_text()
+    gen_text = ''
     proxy = ''
     # proxies = get_proxies()
 
@@ -307,14 +368,15 @@ if __name__ == "__main__":
     for proxy in proxies:
 
         print('starting new form')
-        driver = start_driver(
-            url, proxy)
+        # driver = start_driver(
+        #     url, proxy)
+        driver = ''
 
         fake_identity = createFakeIdentity()
         time.sleep(1)
 
         print('filling out form now')
-        if test_fill_out_form(fake_identity, driver, gen_text):
+        if img_fill_test(fake_identity, driver, gen_text):
             time.sleep(10000)
             print('Thank you: {} {} for filling out this form'.format(
                 fake_identity['first_name'], fake_identity['last_name']))

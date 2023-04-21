@@ -1,5 +1,5 @@
 import requests
-from main import createFakeIdentity, gen_text
+from main import createFakeIdentity, gen_text, get_cap_data
 import random
 cities_zips = {
 
@@ -50,8 +50,9 @@ headers = {
 params = {
     'sf_cntrl_id': 'ctl00$MainContent$C001',
 }
+captcha_data = get_cap_data()
 
-data = '------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_4"\r\n\r\n{fname}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_5"\r\n\r\n{lname}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_1"\r\n\r\n{address}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_2"\r\n\r\n{city}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="DropdownListFieldController"\r\n\r\n{state}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_6"\r\n\r\n{zip}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_0"\r\n\r\n{email}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_3"\r\n\r\n{phone_number}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="ParagraphTextFieldController"\r\n\r\n{prompt}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="captcha-a"\r\n\r\n{capt_a}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="captcha-ca"\r\n\r\n{captcha_ca}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="captcha-iv"\r\n\r\n{captcha_iv}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="captcha-k"\r\n\r\n{}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv--\r\n'.format(
+data = '------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_4"\r\n\r\n{fname}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_5"\r\n\r\n{lname}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_1"\r\n\r\n{address}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_2"\r\n\r\n{city}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="DropdownListFieldController"\r\n\r\n{state}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_6"\r\n\r\n{zip}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_0"\r\n\r\n{email}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="TextFieldController_3"\r\n\r\n{phone_number}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="ParagraphTextFieldController"\r\n\r\n{prompt}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="captcha-a"\r\n\r\n{captcha_a}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="captcha-ca"\r\n\r\n{captcha_ca}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="captcha-iv"\r\n\r\n{captcha_iv}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-data; name="captcha-k"\r\n\r\n{captcha_k}\r\n------WebKitFormBoundaryp2tIeeBbk6vqBZkv--\r\n'.format(
 
     fname=fake_identity['first_name'],
     lname=fake_identity['last_name'],
@@ -63,9 +64,9 @@ data = '------WebKitFormBoundaryp2tIeeBbk6vqBZkv\r\nContent-Disposition: form-da
     phone_number=fake_identity['phone_number'],
     prompt=gen_text(),
     captcha_a='1HL4D',
-    captcha_ca='dTKDRTbiLNz6mh5b8sdwn91',
-    captcha_iv='WxJZLttR49PoiTyXsLP7wg==',
-    captcha_k='kCxLS0o9Zk4f0UCRlt10OCmTENjml+jQK1x4A2jvwZbiHr4067yv0hVEcR2TFnyda91LXaeGQK5VrpslHv3MwA=='
+    captcha_ca=captcha_data['captcha_ca'],
+    captcha_iv=captcha_data['captcha_iv'],
+    captcha_k=captcha_data['k']
 
 )
 
